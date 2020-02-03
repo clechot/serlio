@@ -27,12 +27,12 @@
 const std::string gPRTMatStructure = "prtMaterialStructure";
 const std::string gPRTMatChannel = "prtMaterialChannel";
 const std::string gPRTMatStream = "prtMaterialStream";
-const std::string gPRTMatMemberFaceStart = "faceIndexStart";
-const std::string gPRTMatMemberFaceEnd = "faceIndexEnd";
+const std::wstring gPRTMatMemberFaceStart = L"faceIndexStart";
+const std::wstring gPRTMatMemberFaceEnd = L"faceIndexEnd";
 
 class MaterialColor {
 public:
-	MaterialColor(adsk::Data::Handle& sHandle, const std::string& name);
+	MaterialColor(adsk::Data::Handle& handle, const std::wstring& name);
 
 	double r() const noexcept;
 	double g() const noexcept;
@@ -48,7 +48,7 @@ private:
 
 class MaterialTrafo {
 public:
-	MaterialTrafo(adsk::Data::Handle& sHandle, const std::string& name);
+	MaterialTrafo(adsk::Data::Handle& handle, const std::wstring& name);
 
 	double su() const noexcept;
 	double sv() const noexcept;
@@ -71,16 +71,16 @@ class MaterialInfo {
 public:
 	explicit MaterialInfo(adsk::Data::Handle& handle);
 
-	std::string bumpMap;
-	std::string colormap;
-	std::string dirtmap;
-	std::string emissiveMap;
-	std::string metallicMap;
-	std::string normalMap;
-	std::string occlusionMap;
-	std::string opacityMap;
-	std::string roughnessMap;
-	std::string specularMap;
+	std::wstring bumpMap;
+	std::wstring colormap;
+	std::wstring dirtmap;
+	std::wstring emissiveMap;
+	std::wstring metallicMap;
+	std::wstring normalMap;
+	std::wstring occlusionMap;
+	std::wstring opacityMap;
+	std::wstring roughnessMap;
+	std::wstring specularMap;
 
 	double opacity = 1.0;
 	double metallic = 0.0;

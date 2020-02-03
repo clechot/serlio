@@ -21,6 +21,7 @@
 #include "prtModifier/PRTModifierNode.h"
 
 #include "prtMaterial/MaterialInfo.h"
+#include "prtMaterial/MaterialUtils.h"
 
 #include "util/LogHandler.h"
 #include "util/MayaUtilities.h"
@@ -42,13 +43,6 @@
 namespace {
 
 constexpr bool DBG = false;
-
-void checkStringLength(const wchar_t* string, const size_t& maxStringLength) {
-	if (wcslen(string) >= maxStringLength) {
-		const std::wstring msg = L"Maximum texture path size is " + std::to_wstring(maxStringLength);
-		prt::log(msg.c_str(), prt::LOG_ERROR);
-	}
-}
 
 MIntArray toMayaIntArray(uint32_t const* a, size_t s) {
 	MIntArray mia(static_cast<unsigned int>(s), 0);
@@ -196,63 +190,23 @@ void MayaCallbacks::addMesh(const wchar_t*, const double* vtx, size_t vtxSize, c
 	outputMesh.copyInPlace(oMesh);
 
 	// create material metadata
-	constexpr unsigned int maxStringLength = 400;
-	constexpr unsigned int maxFloatArrayLength = 5;
-	constexpr unsigned int maxStringArrayLength = 2;
-
-	adsk::Data::Structure* fStructure; // Structure to use for creation
-	fStructure = adsk::Data::Structure::structureByName(gPRTMatStructure.c_str());
-	if ((fStructure == nullptr) && (materials != nullptr) && (faceRangesSize > 1)) {
+	adsk::Data::Structure* materialStructure = nullptr;
+	if ((materials != nullptr) && (faceRangesSize > 1)) {
 		const prt::AttributeMap* mat = materials[0];
 
-		// Register our structure since it is not registered yet.
-		fStructure = adsk::Data::Structure::create();
-		fStructure->setName(gPRTMatStructure.c_str());
-
-		fStructure->addMember(adsk::Data::Member::kInt32, 1, gPRTMatMemberFaceStart.c_str());
-		fStructure->addMember(adsk::Data::Member::kInt32, 1, gPRTMatMemberFaceEnd.c_str());
+		// TODO: structure for material should be setup statically
+		std::vector<mu::structure::Descriptor> structureDescriptors = {
+		        {gPRTMatMemberFaceStart, prt::Attributable::PT_INT},
+		        {gPRTMatMemberFaceEnd, prt::Attributable::PT_INT}};
 
 		size_t keyCount = 0;
 		wchar_t const* const* keys = mat->getKeys(&keyCount);
-		for (int k = 0; k < keyCount; k++) {
+		for (size_t k = 0; k < keyCount; k++) {
 			wchar_t const* key = keys[k];
-
-			adsk::Data::Member::eDataType type;
-			unsigned int size = 0;
-			unsigned int arrayLength = 1;
-
-			// clang-format off
-			switch (mat->getType(key)) {
-				case prt::Attributable::PT_BOOL: type = adsk::Data::Member::kBoolean; size = 1;  break;
-				case prt::Attributable::PT_FLOAT: type = adsk::Data::Member::kDouble; size = 1; break;
-				case prt::Attributable::PT_INT: type = adsk::Data::Member::kInt32; size = 1; break;
-
-				//workaround: using kString type crashes maya when setting metadata elememts. Therefore we use array of kUInt8
-				case prt::Attributable::PT_STRING: type = adsk::Data::Member::kUInt8; size = maxStringLength;  break;
-				case prt::Attributable::PT_BOOL_ARRAY: type = adsk::Data::Member::kBoolean; size = maxStringLength; break;
-				case prt::Attributable::PT_INT_ARRAY: type = adsk::Data::Member::kInt32; size = maxStringLength; break;
-				case prt::Attributable::PT_FLOAT_ARRAY: type = adsk::Data::Member::kDouble; size = maxFloatArrayLength; break;
-				case prt::Attributable::PT_STRING_ARRAY: type = adsk::Data::Member::kUInt8; size = maxStringLength; arrayLength = maxStringArrayLength; break;
-
-				case prt::Attributable::PT_UNDEFINED: break;
-				case prt::Attributable::PT_BLIND_DATA: break;
-				case prt::Attributable::PT_BLIND_DATA_ARRAY: break;
-				case prt::Attributable::PT_COUNT: break;
-			}
-			// clang-format on
-
-			if (size > 0) {
-				for (unsigned int i = 0; i < arrayLength; i++) {
-					std::wstring keyToUse = key;
-					if (i > 0)
-						keyToUse = key + std::to_wstring(i);
-					const std::string keyToUseNarrow = prtu::toOSNarrowFromUTF16(keyToUse);
-					fStructure->addMember(type, size, keyToUseNarrow.c_str());
-				}
-			}
+			structureDescriptors.push_back({key, mat->getType(key)});
 		}
 
-		adsk::Data::Structure::registerStructure(*fStructure);
+		materialStructure = mu::structure::registerStructure(gPRTMatStructure, structureDescriptors);
 	}
 
 	MCHECK(stat);
@@ -262,7 +216,7 @@ void MayaCallbacks::addMesh(const wchar_t*, const double* vtx, size_t vtxSize, c
 	newMetadata.makeUnique();
 	MCHECK(stat);
 	adsk::Data::Channel newChannel = newMetadata.channel(gPRTMatChannel);
-	adsk::Data::Stream newStream(*fStructure, gPRTMatStream);
+	adsk::Data::Stream newStream(*materialStructure, gPRTMatStream);
 
 	newChannel.setDataStream(newStream);
 	newMetadata.setChannel(newChannel);
@@ -272,106 +226,59 @@ void MayaCallbacks::addMesh(const wchar_t*, const double* vtx, size_t vtxSize, c
 		for (size_t fri = 0; fri < faceRangesSize - 1; fri++) {
 
 			if (materials != nullptr) {
-				adsk::Data::Handle handle(*fStructure);
+				adsk::Data::Handle handle(*materialStructure);
 
 				const prt::AttributeMap* mat = materials[fri];
 
 				size_t keyCount = 0;
 				wchar_t const* const* keys = mat->getKeys(&keyCount);
-
 				for (int k = 0; k < keyCount; k++) {
-
 					wchar_t const* key = keys[k];
-
-					const std::string keyNarrow = prtu::toOSNarrowFromUTF16(key);
-
-					if (!handle.setPositionByMemberName(keyNarrow.c_str()))
-						continue;
-
-					size_t arraySize = 0;
 
 					switch (mat->getType(key)) {
 						case prt::Attributable::PT_BOOL:
-							handle.asBoolean()[0] = mat->getBool(key);
+							mu::structure::putBool(handle, key, mat->getBool(key));
 							break;
 						case prt::Attributable::PT_FLOAT:
-							handle.asDouble()[0] = mat->getFloat(key);
+							mu::structure::putFloat(handle, key, mat->getFloat(key));
 							break;
 						case prt::Attributable::PT_INT:
-							handle.asInt32()[0] = mat->getInt(key);
+							mu::structure::putInt(handle, key, mat->getInt(key));
 							break;
-
-							// workaround: transporting string as uint8 array, because using asString crashes maya
-						case prt::Attributable::PT_STRING: {
-							const wchar_t* str = mat->getString(key);
-							if (wcslen(str) == 0)
-								break;
-							checkStringLength(str, maxStringLength);
-							size_t maxStringLengthTmp = maxStringLength;
-							prt::StringUtils::toOSNarrowFromUTF16(str, (char*)handle.asUInt8(), &maxStringLengthTmp);
+						case prt::Attributable::PT_STRING:
+							mu::structure::putString(handle, key, mat->getString(key));
 							break;
-						}
 						case prt::Attributable::PT_BOOL_ARRAY: {
-							const bool* boolArray;
-							boolArray = mat->getBoolArray(key, &arraySize);
-							for (unsigned int i = 0; i < arraySize && i < maxStringLength; i++)
-								handle.asBoolean()[i] = boolArray[i];
-							break;
-						}
-						case prt::Attributable::PT_INT_ARRAY: {
-							const int* intArray;
-							intArray = mat->getIntArray(key, &arraySize);
-							for (unsigned int i = 0; i < arraySize && i < maxStringLength; i++)
-								handle.asInt32()[i] = intArray[i];
+							size_t count = 0;
+							const bool* vals = mat->getBoolArray(key, &count);
+							mu::structure::putBoolArray(handle, key, vals, count);
 							break;
 						}
 						case prt::Attributable::PT_FLOAT_ARRAY: {
-							const double* floatArray;
-							floatArray = mat->getFloatArray(key, &arraySize);
-							for (unsigned int i = 0; i < arraySize && i < maxStringLength && i < maxFloatArrayLength;
-							     i++)
-								handle.asDouble()[i] = floatArray[i];
+							size_t count = 0;
+							const double* vals = mat->getFloatArray(key, &count);
+							mu::structure::putFloatArray(handle, key, vals, count);
+							break;
+						}
+						case prt::Attributable::PT_INT_ARRAY: {
+							size_t count = 0;
+							const int32_t* vals = mat->getIntArray(key, &count);
+							mu::structure::putIntArray(handle, key, vals, count);
 							break;
 						}
 						case prt::Attributable::PT_STRING_ARRAY: {
-
-							const wchar_t* const* stringArray = mat->getStringArray(key, &arraySize);
-
-							for (unsigned int i = 0; i < arraySize && i < maxStringLength; i++) {
-								if (wcslen(stringArray[i]) == 0)
-									continue;
-
-								if (i > 0) {
-									std::wstring keyToUse = key + std::to_wstring(i);
-									const std::string keyToUseNarrow = prtu::toOSNarrowFromUTF16(keyToUse);
-									if (!handle.setPositionByMemberName(keyToUseNarrow.c_str()))
-										continue;
-								}
-
-								checkStringLength(stringArray[i], maxStringLength);
-								size_t maxStringLengthTmp = maxStringLength;
-								prt::StringUtils::toOSNarrowFromUTF16(stringArray[i], (char*)handle.asUInt8(),
-								                                      &maxStringLengthTmp);
-							}
+							size_t count = 0;
+							wchar_t const* const* const vals = mat->getStringArray(key, &count);
+							mu::structure::putStringArray(handle, key, vals, count);
 							break;
 						}
-
-						case prt::Attributable::PT_UNDEFINED:
-							break;
-						case prt::Attributable::PT_BLIND_DATA:
-							break;
-						case prt::Attributable::PT_BLIND_DATA_ARRAY:
-							break;
-						case prt::Attributable::PT_COUNT:
+						default:
 							break;
 					}
 				}
 
-				handle.setPositionByMemberName(gPRTMatMemberFaceStart.c_str());
-				*handle.asInt32() = faceRanges[fri];
-
-				handle.setPositionByMemberName(gPRTMatMemberFaceEnd.c_str());
-				*handle.asInt32() = faceRanges[fri + 1];
+				mu::structure::putInt(handle, gPRTMatMemberFaceStart.c_str(), faceRanges[fri]);
+				mu::structure::putInt(handle, gPRTMatMemberFaceEnd.c_str(), faceRanges[fri + 1]);
 
 				newStream.setElement(static_cast<adsk::Data::IndexCount>(fri), handle);
 			}

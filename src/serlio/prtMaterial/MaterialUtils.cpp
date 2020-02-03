@@ -132,15 +132,9 @@ MaterialCache getMaterialsByStructure(const adsk::Data::Structure& materialStruc
 	return existingMaterialInfos;
 }
 
-bool getFaceRange(adsk::Data::Handle& handle, std::pair<int, int>& faceRange) {
-	if (!handle.setPositionByMemberName(gPRTMatMemberFaceStart.c_str()))
-		return false;
-	faceRange.first = *handle.asInt32();
-
-	if (!handle.setPositionByMemberName(gPRTMatMemberFaceEnd.c_str()))
-		return false;
-	faceRange.second = *handle.asInt32();
-
+bool getFaceRange(adsk::Data::Handle& handle, FaceRange& faceRange) {
+	faceRange.first = mu::structure::getInt(handle, gPRTMatMemberFaceStart.c_str());
+	faceRange.second = mu::structure::getInt(handle, gPRTMatMemberFaceEnd.c_str());
 	return true;
 }
 

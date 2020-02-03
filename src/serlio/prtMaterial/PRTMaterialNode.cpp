@@ -157,10 +157,9 @@ MStatus PRTMaterialNode::compute(const MPlug& plug, MDataBlock& data) {
 
 namespace {
 
-void setTexture(MELScriptBuilder& sb, const std::wstring& target, const std::wstring& shaderBaseName,
-                const std::wstring& tex) {
+void setTexture(MELScriptBuilder& sb, const std::wstring& target, const std::wstring& tex) {
 	if (!tex.empty()) {
-		sb.setVar(L"$mapNode", shaderBaseName);
+		sb.setVar(L"$mapNode", MATERIAL_BASE_NAME + L"Tex");
 		sb.setVar(L"$mapFile", tex);
 		sb.createTexture(L"$mapNode");
 		sb.setAttr(L"($mapNode + \".fileTextureName\")", L"$mapFile");
@@ -230,12 +229,11 @@ void PRTMaterialNode::appendToMaterialScriptBuilder(MELScriptBuilder& sb, const 
 	sb.setAttr(L"($shaderNode + \".roughnessmap_trafo_suvw\")", matInfo.roughnessmapTrafo.suvw());
 
 	// ignored: bumpMap, specularMap, occlusionmap
-	// TODO: avoid wide/narrow conversion of map strings
-	setTexture(sb, L"color_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.colormap));
-	setTexture(sb, L"dirt_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.dirtmap));
-	setTexture(sb, L"emissive_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.emissiveMap));
-	setTexture(sb, L"metallic_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.metallicMap));
-	setTexture(sb, L"normal_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.normalMap));
-	setTexture(sb, L"roughness_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.roughnessMap));
-	setTexture(sb, L"opacity_map", shaderBaseName, prtu::toUTF16FromOSNarrow(matInfo.opacityMap));
+	setTexture(sb, L"color_map", matInfo.colormap);
+	setTexture(sb, L"dirt_map", matInfo.dirtmap);
+	setTexture(sb, L"emissive_map", matInfo.emissiveMap);
+	setTexture(sb, L"metallic_map", matInfo.metallicMap);
+	setTexture(sb, L"normal_map", matInfo.normalMap);
+	setTexture(sb, L"roughness_map", matInfo.roughnessMap);
+	setTexture(sb, L"opacity_map", matInfo.opacityMap);
 }

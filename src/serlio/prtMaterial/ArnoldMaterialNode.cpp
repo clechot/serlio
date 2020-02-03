@@ -354,11 +354,11 @@ void ArnoldMaterialNode::setUvTransformAttrs(MELScriptBuilder& sb, const std::ws
 	}
 }
 
-std::wstring ArnoldMaterialNode::createMapShader(MELScriptBuilder& sb, const std::string& mapFile,
+std::wstring ArnoldMaterialNode::createMapShader(MELScriptBuilder& sb, const std::wstring& mapFile,
                                                  const MaterialTrafo& mapTrafo, const std::wstring& shaderName,
                                                  const std::wstring& uvSet, const bool raw, const bool alpha) const {
 	sb.setVar(L"$mapNode", shaderName);
-	sb.setVar(L"$mapFile", prtu::toUTF16FromOSNarrow(mapFile));
+	sb.setVar(L"$mapFile", mapFile);
 	sb.createTexture(L"$mapNode");
 	sb.setAttr(L"($mapNode + \".fileTextureName\")", L"$mapFile");
 

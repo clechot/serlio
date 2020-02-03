@@ -2,6 +2,8 @@
 
 #include "prtMaterial/MaterialInfo.h"
 
+#include "prt/Attributable.h"
+
 #include "maya/MPlug.h"
 #include "maya/MStatus.h"
 #include "maya/MString.h"
@@ -18,7 +20,8 @@ MStatus getMeshName(MString& meshName, const MPlug& plug);
 using MaterialCache = std::map<MaterialInfo, std::wstring>;
 MaterialCache getMaterialsByStructure(const adsk::Data::Structure& materialStructure, const std::wstring& baseName);
 
-bool getFaceRange(adsk::Data::Handle& handle, std::pair<int, int>& faceRange);
+using FaceRange = std::pair<int32_t, int32_t>;
+bool getFaceRange(adsk::Data::Handle& handle, FaceRange& faceRange);
 
 void assignMaterialMetadata(const adsk::Data::Structure& materialStructure, const adsk::Data::Handle& streamHandle,
                             const std::wstring& shadingEngineName);
