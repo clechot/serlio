@@ -45,15 +45,15 @@ void putFloat(adsk::Data::Handle& handle, const wchar_t* key, double val);
 void putInt(adsk::Data::Handle& handle, const wchar_t* key, int32_t val);
 void putString(adsk::Data::Handle& handle, const wchar_t* key, const wchar_t* val);
 
-void putBoolArray(adsk::Data::Handle& handle, const wchar_t* key, const bool* vals, size_t count);
-void putFloatArray(adsk::Data::Handle& handle, const wchar_t* key, const double* vals, size_t count);
-void putIntArray(adsk::Data::Handle& handle, const wchar_t* key, const int32_t* vals, size_t count);
-void putStringArray(adsk::Data::Handle& handle, const wchar_t* key, wchar_t const* const* vals, size_t count);
-
 bool getBool(adsk::Data::Handle& handle, const wchar_t* key);
 double getFloat(adsk::Data::Handle& handle, const wchar_t* key);
 int32_t getInt(adsk::Data::Handle& handle, const wchar_t* key);
 wchar_t const* getString(adsk::Data::Handle& handle, const wchar_t* key);
+
+void putBoolArray(adsk::Data::Handle& handle, const wchar_t* key, const bool* vals, size_t count);
+void putFloatArray(adsk::Data::Handle& handle, const wchar_t* key, const double* vals, size_t count);
+void putIntArray(adsk::Data::Handle& handle, const wchar_t* key, const int32_t* vals, size_t count);
+void putStringArray(adsk::Data::Handle& handle, const wchar_t* key, wchar_t const* const* vals, size_t count);
 
 std::pair<const bool*, size_t> getBoolArray(adsk::Data::Handle& handle, const wchar_t* key);
 std::pair<const double*, size_t> getFloatArray(adsk::Data::Handle& handle, const wchar_t* key);
