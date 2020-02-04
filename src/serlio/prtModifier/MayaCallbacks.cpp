@@ -99,7 +99,7 @@ void MayaCallbacks::addMesh(const wchar_t*, const double* vtx, size_t vtxSize, c
                             uint32_t const* const* uvCounts, size_t const* uvCountsSizes,
                             uint32_t const* const* uvIndices, size_t const* uvIndicesSizes, size_t uvSetsCount,
                             const uint32_t* faceRanges, size_t faceRangesSize, const prt::AttributeMap** materials,
-                            const prt::AttributeMap** reports, const int32_t*) {
+                            const prt::AttributeMap** /*reports*/, const int32_t*) {
 	MFloatPointArray mayaVertices = toMayaFloatPointArray(vtx, vtxSize);
 	MIntArray mayaFaceCounts = toMayaIntArray(faceCounts, faceCountsSize);
 	MIntArray mayaVertexIndices = toMayaIntArray(vertexIndices, vertexIndicesSize);
@@ -281,10 +281,6 @@ void MayaCallbacks::addMesh(const wchar_t*, const double* vtx, size_t vtxSize, c
 				mu::structure::putInt(handle, gPRTMatMemberFaceEnd.c_str(), faceRanges[fri + 1]);
 
 				newStream.setElement(static_cast<adsk::Data::IndexCount>(fri), handle);
-			}
-
-			if (reports != nullptr) {
-				// todo
 			}
 		}
 	}
